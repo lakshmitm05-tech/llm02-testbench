@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>LLM02 Testbench UI</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    button { padding: 8px 16px; margin-top: 10px; }
+    table { border-collapse: collapse; margin-top: 20px; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 6px; font-size: 14px; }
+    th { background: #f0f0f0; }
+    .leak-high { color: red; font-weight: bold; }
+    .leak-medium { color: orange; }
+  </style>
+</head>
+<body>
+  <h1>LLM02 Testbench - Web UI</h1>
+  <p>This page calls the <code>/run-tests</code> API in mock mode and shows the results.</p>
+
+  <button id="runBtn">Run Tests (mock)</button>
+
+  <div id="status"></div>
+
+  <table id="resultsTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Prompt</th>
+        <th>Response (first 100 chars)</th>
+        <th>Leaks</th>
+      </tr>
+    </thead>
+    <tbody id="resultsBody"></tbody>
+  </table>
+
+  <script>
+    document.getElementById("runBtn").onclick = async function() {
+      document.getElementById("status").innerText = "Running tests...";
+      document.getElementById("resultsTable").style.display = "none";
+
+      try {
+        const resp = await fetch("/run-tests", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ endpoint: "mock", api_key: "none" })
+        });
+
+        if (!resp.ok) {
+          document.getElementById("status").innerText = "Error: " + resp.status;
+          return;
+        }
+
+        const data = await resp.json();
+        document.getElementById("status").innerText =
+          "Done. Total prompts: " + data.total_prompts;
+
+        const tbody = document.getElementById("resultsBody");
+        tbody.innerHTML = "";
+
+        data.results.forEach((item, idx) => {
+          const tr = document.createElement("tr");
+
+          const tdIndex = document.createElement("td");
+          tdIndex.textContent = idx + 1;
+
+          const tdPrompt = document.createElement("td");
+          tdPrompt.textContent = item.prompt;
+
+          const tdResponse = document.createElement("td");
+          tdResponse.textContent = item.response.slice(0, 100) + "...";
+
+          const tdLeaks = document.createElement("td");
+          if (item.leaks.length === 0) {
+            tdLeaks.textContent = "No leaks detected";
+          } else {
+            const parts = item.leaks.map(l => {
+              const cls = l.severity === "high" ? "leak-high" : "leak-medium";
+              return `<span class="${cls}">${l.kind} (${l.severity})</span>`;
+            });
+            tdLeaks.innerHTML = parts.join(", ");
+          }
+
+          tr.appendChild(tdIndex);
+          tr.appendChild(tdPrompt);
+          tr.appendChild(tdResponse);
+          tr.appendChild(tdLeaks);
+
+          tbody.appendChild(tr);
+        });
+
+        document.getElementById("resultsTable").style.display = "table";
+      } catch (e) {
+        document.getElementById("status").innerText = "Error: " + e;
+      }
+    };
+  </script>
+</body>
+</html>

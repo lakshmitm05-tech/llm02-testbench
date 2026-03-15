@@ -1,0 +1,12 @@
+# LLM02 Testbench + Trust Validation Requirements
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+jinja2==3.1.4
+pydantic==2.9.2
+shap==0.46.0
+lime==0.2.0.1
+pandas==2.2.3
+numpy==1.26.4
+scikit-learn==1.5.1
+matplotlib==3.9.2
+requests==2.32.3
